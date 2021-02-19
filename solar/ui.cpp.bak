@@ -1,0 +1,949 @@
+﻿#include "ui.h"
+
+#include <algorithm>
+#include <vector>
+#include <iostream>
+#include <mutex>
+#include <functional>
+
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
+#include "config.h"
+#include "glext.h"
+#include "constants.h"
+#include "config.h"
+#include "camera.h"
+#include "utils.h"
+
+namespace ui
+{
+    // 주어진 범위에서 충돌 테스트를 진행합니다.
+    constexpr bool hit(v::Rect2f rect, v::Point2f pos)
+    {
+        return
+            rect.x <= pos.x && pos.x <= rect.x + rect.w &&
+            rect.y <= pos.y && pos.y <= rect.y + rect.h;
+    };
+
+    class Control
+    {
+    protected:
+        ControlTypes type; // 타입
+
+        const char* str = nullptr;
+
+    public:
+        v::Rect2f rectWindow = -1; // 윈도우 이벤트 연산용 좌표계
+        v::Rect2f rectRender = -1; // 렌더링 전용 좌표계
+
+        float bottomMargin = 0; // 밑 여백
+
+        bool focused = false; // 마우스 올라감
+        bool clicked = false; // 클릭됨
+
+    public:
+        inline ControlTypes getType() { return this->type; }
+
+        virtual std::string getStr()
+        {
+            return this->str == nullptr ? "" : this->str;
+        }
+
+        // 오른쪽 한계를 얻어옵니다.
+        inline float getRight() const noexcept
+        {
+            float r = this->rectWindow.x + this->rectWindow.w;
+
+            // 체크박스 있으면 해당 영역도 더하기
+            if (this->type == ControlTypes::CheckBox || this->type == ControlTypes::RadioButton)
+            {
+                r += UI_CHECKBOX_SIZE + UI_CHECKBOX_MARGIN_X;
+            }
+
+            return r;
+        }
+
+        // 적절한 색을 선택합니다
+        inline const float* selectColor(const ui::Color& c)
+        {
+            if (this->clicked) return c.colorClicked;
+            if (this->focused) return c.colorFocused;
+            return c.colorDefault;
+        }
+
+        virtual bool hit(v::Point2f pos)
+        {
+            // 주어진 범위에서 충돌 테스트를 진행합니다.
+            return ui::hit(this->rectWindow, pos);
+        }
+
+        virtual void draw(v::Size2f winRect, const v::Rect2f uiRect) = 0;
+
+        // 마우스 이벤트 처리
+        virtual void mouseDown(v::Point2f pos) {};
+        virtual void mouseMove(v::Point2f pos) {};
+        virtual void mouseUp(v::Point2f pos) {};
+    };
+
+    class TitleBar : virtual public Control
+    {
+    private:
+        v::Point2f mouseLocation = 0;
+
+    public:
+        TitleBar(const char* str)
+        {
+            this->type = ControlTypes::Title;
+            this->str = str;
+
+            this->rectWindow.h = UI_TITLE_HEIGHT;
+        }
+
+        virtual void draw(v::Size2f winRect, const v::Rect2f uiRect) override
+        {
+            // 타이틀바 배경 색상 선택
+            glColor4fv(this->selectColor(UI_TITLE_BACKGROUND));
+
+            // 타이틀바 배경 그리기
+            {
+                const v::Rect2f rect(
+                    uiRect.x,
+                    uiRect.y + uiRect.h - UI_TITLE_HEIGHT,
+                    uiRect.w,
+                    UI_TITLE_HEIGHT
+                );
+                glext::drawRect(GL_QUADS, rect);
+            }
+
+            // 텍스트 쓰기
+            const v::Rect2f rect(
+                uiRect.x,
+                uiRect.y + uiRect.h - UI_TITLE_HEIGHT,
+                this->rectRender.w,
+                UI_TITLE_HEIGHT
+            );
+            model::Text::instance().draw(
+                winRect,
+                rect,
+                model::Alignment::Middle,
+                model::Alignment::Middle,
+                UI_TITLE_TEXT_FONT,
+                UI_TITLE_TEXT_COLOR,
+                this->getStr()
+            );
+        }
+
+        virtual void mouseDown(v::Point2f pos) override { }
+        virtual void mouseMove(v::Point2f pos) override { }
+        virtual void mouseUp(v::Point2f pos) override { }
+    };
+
+    class CloseButton : virtual public Control
+    {
+    public:
+        CloseButton()
+        {
+            this->type = ControlTypes::Close;
+            this->rectWindow.w = UI_TITLE_HEIGHT;
+            this->rectWindow.h = UI_TITLE_HEIGHT;
+        }
+
+        virtual void draw(v::Size2f winRect, const v::Rect2f uiRect) override
+        {
+            // 영역 지정
+            const v::Rect2f checkRect(
+                uiRect.x + this->rectRender.x,
+                uiRect.y + this->rectRender.y,
+                this->rectRender.w,
+                this->rectRender.h
+            );
+
+            // 체크박스 배경 그리기
+            glColor4fv(this->selectColor(UI_CHECKBOX_BACKGROUND));
+            glext::drawRect(GL_QUADS, checkRect);
+
+            {
+                glColor4fv(UI_CHECKBOX_CHECKED_COLOR);
+                glLineWidth(UI_CHECKBOX_CHECKED_THICKNESS);
+
+                enterBegin(GL_LINES);
+                glVertex2f(checkRect.x, checkRect.y);
+                glVertex2f(checkRect.x + checkRect.w, checkRect.y + checkRect.h);
+
+                glVertex2f(checkRect.x + checkRect.w, checkRect.y);
+                glVertex2f(checkRect.x, checkRect.y + checkRect.h);
+            }
+        }
+
+        virtual void mouseDown(v::Point2f pos) override
+        {
+        }
+
+        virtual void mouseMove(v::Point2f pos) override
+        {
+        }
+
+        virtual void mouseUp(v::Point2f pos) override
+        {
+            ui::close();
+        }
+    };
+
+    class Button : virtual public Control
+    {
+    private:
+        std::function<void()> action;
+
+    public:
+        Button(
+            float x,
+            float bottomMargin,
+            const char* str,
+            std::function<void()> action
+        )
+        {
+            this->type = ControlTypes::Button;
+            this->rectWindow.x = x;
+            this->rectWindow.h = UI_BUTTON_HEIGHT;
+            this->bottomMargin = bottomMargin;
+            this->str = str;
+            this->action = action;
+        }
+
+        virtual void draw(v::Size2f winRect, const v::Rect2f uiRect)
+        {
+            const v::Rect2f buttonRect(
+                uiRect.x + this->rectRender.x,
+                uiRect.y + this->rectRender.y,
+                this->rectRender.w,
+                this->rectRender.h
+            );
+
+            // 체크박스 배경 그리기
+            glColor4fv(this->selectColor(UI_BUTTON_BACKGROUND));
+            glext::drawRect(GL_QUADS, buttonRect);
+
+            model::Text::instance().draw(
+                winRect,
+                buttonRect,
+                model::Alignment::Middle,
+                model::Alignment::Middle,
+                UI_ELEMENT_TEXT_FONT,
+                UI_BUTTON_TEXT_COLOR,
+                this->getStr()
+            );
+
+            // 테두리 그리기
+            glColor4fv(UI_BUTTON_BORDER_COLOR);
+            glLineWidth(UI_BUTTON_BORDER_THICKNESS);
+            glext::drawRect(GL_LINE_LOOP, buttonRect);
+        }
+
+        // 마우스 이벤트 처리
+        virtual void mouseDown(v::Point2f pos) {};
+        virtual void mouseMove(v::Point2f pos) {};
+        virtual void mouseUp(v::Point2f pos)
+        {
+            this->action();
+        }
+    };
+
+    template <typename T>
+    class ControlWithValue : virtual public Control
+    {
+    protected:
+        std::function<T(void)> get = nullptr;
+        std::function<void(T)> set = nullptr;
+
+        T valueTarget;
+
+        bool useFormatting;
+
+        virtual std::string getStr() override
+        {
+            if (!useFormatting || this->str == nullptr)
+                return this->str == nullptr ? "" : this->str;
+
+            std::array<char, 128> b{};
+            std::snprintf(b.data(), b.size(), this->str, this->get());
+            return b.data();
+        }
+
+    public:
+        virtual void draw(v::Size2f winRect, const v::Rect2f uiRect) override
+        {
+            // 체크박스 영역 지정
+            const v::Rect2f checkRect(
+                uiRect.x + this->rectRender.x,
+                uiRect.y + this->rectRender.y + (this->rectRender.h - UI_CHECKBOX_SIZE) / 2,
+                UI_CHECKBOX_SIZE,
+                UI_CHECKBOX_SIZE
+            );
+
+            // 체크박스 배경 그리기
+            glColor4fv(this->selectColor(UI_CHECKBOX_BACKGROUND));
+            if (this->get() == this->valueTarget)
+            {
+                glext::drawCircle(GL_POLYGON, checkRect);
+            }
+            else
+            {
+                glext::drawRect(GL_QUADS, checkRect);
+            }
+
+            // 체크 그리기
+            if (this->get() == this->valueTarget)
+            {
+                if (this->type == ControlTypes::RadioButton)
+                {
+                    const v::Rect2f rectValue(
+                        static_cast<float>(checkRect.x) + (checkRect.w - UI_RADIO_CHECKED_SIZE) / 2.0f,
+                        static_cast<float>(checkRect.y) + (checkRect.h - UI_RADIO_CHECKED_SIZE) / 2.0f,
+                        UI_RADIO_CHECKED_SIZE,
+                        UI_RADIO_CHECKED_SIZE
+                    );
+                    glext::drawCircle(GL_POLYGON, rectValue, 8);
+                }
+                else
+                {
+                    glColor4fv(UI_CHECKBOX_CHECKED_COLOR);
+                    glLineWidth(UI_CHECKBOX_CHECKED_THICKNESS);
+
+                    enterBegin(GL_LINES);
+                    glVertex2f(checkRect.x, checkRect.y);
+                    glVertex2f(checkRect.x + checkRect.w, checkRect.y + checkRect.h);
+
+                    glVertex2f(checkRect.x + checkRect.w, checkRect.y);
+                    glVertex2f(checkRect.x, checkRect.y + checkRect.h);
+                }
+            }
+
+            // 테두리 그리기. (닫기버튼은 작업 안함)
+            glColor4fv(UI_CHECKBOX_BORDER_COLOR);
+            glLineWidth(UI_CHECKBOX_BORDER_THICKNESS);
+
+            glext::drawRect(GL_LINE_LOOP, checkRect);
+
+            // 글씨 쓰기
+
+            v::Rect2f rect( // 체크박스 영역 빼고...
+                uiRect.x + this->rectRender.x + UI_CHECKBOX_SIZE + UI_CHECKBOX_MARGIN_X,
+                uiRect.y + this->rectRender.y,
+                this->rectRender.w - UI_CHECKBOX_SIZE + UI_CHECKBOX_MARGIN_X,
+                this->rectRender.h
+            );
+
+            model::Text::instance().draw(
+                winRect,
+                rect,
+                model::Alignment::Near,
+                model::Alignment::Middle,
+                UI_ELEMENT_TEXT_FONT,
+                UI_ELEMENT_TEXT_COLOR,
+                this->getStr()
+            );
+        }
+
+        // 마우스 이벤트 처리
+        virtual void mouseMove(v::Point2f pos) override { };
+        virtual void mouseUp(v::Point2f pos) override { };
+    };
+
+    template <typename T = char>
+    class Label : virtual public ControlWithValue<T>
+    {
+    private:
+        bool centerAlign;
+
+    public:
+        Label(
+            float bottomMargin,
+            bool centerAlign,
+            const char* str,
+            std::function<T(void)> get = nullptr
+        )
+        {
+            this->type = ControlTypes::Label;
+            this->rectWindow.x = 0;
+            this->rectWindow.h = UI_TITLE_HEIGHT;
+
+            this->centerAlign = centerAlign;
+            this->useFormatting = get != nullptr;
+            this->get = get;
+        }
+
+    public:
+        virtual void draw(v::Size2f winRect, const v::Rect2f uiRect) override
+        {
+            const v::Rect2f rect(
+                uiRect.x + this->rectRender.x,
+                uiRect.y + this->rectRender.y,
+                this->rectRender.w,
+                this->rectRender.h
+            );
+
+            model::Text::instance().draw(
+                winRect,
+                rect,
+                this->centerAlign ? model::Alignment::Middle : model::Alignment::Near,
+                model::Alignment::Middle,
+                UI_ELEMENT_TEXT_FONT,
+                UI_ELEMENT_TEXT_COLOR,
+                this->getStr()
+            );
+        }
+
+        // 마우스 이벤트 처리
+        virtual void mouseMove(v::Point2f pos) override {};
+        virtual void mouseUp(v::Point2f pos) override {};
+    };
+
+    class CheckBox : virtual public ControlWithValue<bool>
+    {
+    public:
+        CheckBox(
+            float x,
+            float bottomMargin,
+            const char* str,
+            std::function<bool()> get,
+            std::function<void(bool)> set
+        )
+        {
+            this->type = ControlTypes::CheckBox;
+            this->rectWindow.x = x;
+            this->bottomMargin = bottomMargin;
+            this->str = str;
+
+            this->get = get;
+            this->set = set;
+            this->valueTarget = true;
+        }
+
+        // 마우스 이벤트 처리
+        virtual void mouseDown(v::Point2f pos) override
+        {
+            this->set(!this->get());
+        };
+    };
+
+    template <typename T>
+    class RadioBox : public ControlWithValue<T>
+    {
+    public:
+        RadioBox(
+            float x,
+            float bottomMargin,
+            const char* str,
+            std::function<T(void)> get,
+            std::function<void(T)> set,
+            int valueTarget
+        )
+        {
+            this->type = ControlTypes::RadioButton;
+            this->rectWindow.x = x;
+            this->bottomMargin = bottomMargin;
+            this->str = str;
+
+            this->get = get;
+            this->set = set;
+            this->valueTarget = valueTarget;
+        }
+
+        virtual void mouseDown(v::Point2f pos) override
+        {
+            this->set(this->valueTarget);
+        };
+    };
+
+    template <typename T>
+    class TrackBar : public ControlWithValue<T>
+    {
+    private:
+        v::Range<T> targetValueRange = 0;   // 범위
+        float       barDragMouseXDelta = 0; // 드래그할 때 쓸 마우스 드래그 위치
+
+        // [ ] 모양 위치 계산하기
+        inline float getBoxX()
+        {
+            return static_cast<float>(
+                (this->rectWindow.w - this->rectWindow.h)
+                * (this->get() - this->targetValueRange.valueMin)
+                / (this->targetValueRange.valueMax - this->targetValueRange.valueMin)
+            );
+        }
+
+    public:
+        TrackBar(
+            float x,
+            float bottomMargin,
+            std::function<T(void)> get,
+            std::function<void(T)> set,
+            v::Range<T> range
+        )
+        {
+            this->type = ControlTypes::Bar;
+            this->rectWindow.x = x;
+            this->rectWindow.h = UI_BAR_SIZE;
+            this->bottomMargin = bottomMargin;
+
+            this->get = get;
+            this->set = set;
+            this->targetValueRange = range;
+        }
+
+        virtual void draw(v::Size2f winRect, const v::Rect2f uiRect) override
+        {
+            // 기준선 그리기
+            glColor4fv(UI_BAR_COLOR);
+            glLineWidth(UI_BAR_THICKNESS);
+            {
+                enterBegin(GL_LINE_STRIP);
+
+                const auto y = uiRect.y + this->rectRender.y + this->rectRender.h / 2;
+
+                glVertex2f(uiRect.x + this->rectRender.x                      + this->rectRender.h / 2, y);
+                glVertex2f(uiRect.x + this->rectRender.x + this->rectRender.w - this->rectRender.h / 2, y);
+            }
+
+            // 사각형 그리기
+            const v::Rect2f barBoxRect(
+                uiRect.x + this->rectRender.x + this->getBoxX(),
+                uiRect.y + this->rectRender.y,
+                this->rectRender.h,
+                this->rectRender.h
+            );
+
+            glColor4fv(this->selectColor(UI_BAR_BOX_BACKGROUND));
+            glext::drawRect(GL_QUADS, barBoxRect);
+
+            // 사각형 테두리 그리기
+            glColor4fv(UI_BAR_BOX_BORDER_COLOR);
+            glLineWidth(UI_BAR_BOX_BORDER_THICKNESS);
+            glext::drawRect(GL_LINE_LOOP, barBoxRect);
+        }
+
+        virtual bool hit(v::Point2f pos) override
+        {
+            // 1차 확인
+            if (!ui::hit(this->rectWindow, pos)) return false;
+
+            // 박스 위치 계산하고 재계산하기
+            const v::Rect2f rect(
+                this->rectWindow.x + this->getBoxX(),
+                this->rectWindow.y,
+                this->rectWindow.h,
+                this->rectWindow.h
+            );
+            return ui::hit(rect, pos);
+        }
+
+        // 마우스 이벤트 처리
+        virtual void mouseDown(v::Point2f pos) override
+        {
+            this->barDragMouseXDelta = pos.x - this->rectWindow.x - this->getBoxX();
+        };
+        virtual void mouseMove(v::Point2f pos) override
+        {
+            const auto p = std::clamp(
+                (pos.x - this->rectWindow.x - this->barDragMouseXDelta) / (this->rectWindow.w - this->rectWindow.h),
+                0.0f,
+                1.0f
+            );
+
+            this->set(this->targetValueRange * p);
+        };
+        virtual void mouseUp(v::Point2f pos) override
+        {
+        };
+    };
+
+    /****************************************************************************************************/
+    // 지역 변수 영역
+
+    std::mutex lock;
+#define UI_LOCK std::lock_guard<std::mutex> __ui_lock(lock)
+
+    v::Rect2f uiRect = { 100, 100, 0, 0 }; // 윈도우 좌표 기반
+
+    bool visible = false; // 표시중 / 숨김중
+
+    v::Point2f mouseLocation    =  0; // 마우스 클릭 시작 위치
+    int        mouseFocused     = -1; // 마우스 클릭을 시작한 컨트롤
+    int        mouseLastFocused = -1; // focused 표시를 취해서
+
+    // 컨트롤 목록
+    std::vector<Control*> controlList;
+
+    /****************************************************************************************************/
+
+    void init()
+    {
+        // 컨트롤 목록 초기화
+        controlList.push_back(new TitleBar("OPTION"));
+        controlList.push_back(new CloseButton());
+
+        controlList.push_back(new Label          ( 5, true,  "-- DISPLAY --"                                                                                                                ));
+        controlList.push_back(new CheckBox       ( 0,  5,    /**/ "Play animation",              config::getPlayAnimation, config::setPlayAnimation                                         ));
+        controlList.push_back(new Label   <float>( 3, false, "Animation speed : %.1f",           config::getSpeed                                                                           ));
+        controlList.push_back(new TrackBar<float>( 0,  5,    /*------[ ]--------------*/         config::getSpeed,            config::setSpeed, { SPEED_MIN, SPEED_MAX }                    ));
+        controlList.push_back(new CheckBox       ( 0,  5,    /**/ "Show animation speed",        config::getShowSpeed,        config::setShowSpeed                                          ));
+        controlList.push_back(new CheckBox       ( 0,  5,    /**/ "Show fps",                    config::getShowFPS,          config::setShowFPS                                            ));
+        controlList.push_back(new CheckBox       ( 0,  5,    /**/ "Show help",                   config::getShowHelp,         config::setShowHelp                                           ));
+        controlList.push_back(new CheckBox       ( 0,  5,    /**/ "Show orbit",                  config::getShowOrbit,        config::setShowOrbit                                          ));
+        controlList.push_back(new CheckBox       (20,  8,          /**/ "Show orbit with color", config::getShowOrbitColored, config::setShowOrbitColored                                   ));
+        controlList.push_back(new RadioBox<int>  (20,  5,          /**/ "Fixed",                 config::getShowOrbitType,    config::setShowOrbitType, (int)config::OrbitType::Line        ));
+        controlList.push_back(new RadioBox<int>  (20,  5,          /**/ "Gradient",              config::getShowOrbitType,    config::setShowOrbitType, (int)config::OrbitType::LineGradient));
+        controlList.push_back(new CheckBox       ( 0,  5,    /**/ "Show planet name",            config::getShowPlanetName,   config::setShowPlanetName                                     ));
+
+        controlList.push_back(new Label          (     5, true,  "-- CAMERA --"                                                                                                        ));
+        controlList.push_back(new Label   <float>(     3, false, "Radius : %.1f",            camera::getRadius                                                                         ));
+        controlList.push_back(new TrackBar<float>( 0,  5,        /*------[ ]--------------*/ camera::getRadius,    camera::setRadius,    { CAMERA_SCALE_MIN, CAMERA_SCALE_MAX }        ));
+        controlList.push_back(new Label   <float>(     3, false, "Elevation : %.1f",         camera::getElevation                                                                      ));
+        controlList.push_back(new TrackBar<float>( 0,  5,        /*------[ ]--------------*/ camera::getElevation, camera::setElevation, { CAMERA_ELEVATION_MIN, CAMERA_ELEVATION_MAX }));
+        controlList.push_back(new Label   <float>(     3, false, "Azimuth : %.1f",           camera::getAzimuth                                                                        ));
+        controlList.push_back(new TrackBar<float>( 0,  8,        /*------[ ]--------------*/ camera::getAzimuth,   camera::setAzimuth,   { 0, 360 }                                    ));
+
+        controlList.push_back(new Label ( 8, true, "-- RESET --"                            ));
+        controlList.push_back(new Button( 0, 8,    "Reset Config", []() { config::reset(); }));
+        controlList.push_back(new Button( 0, 0,    "Reset Camera", []() { camera::reset(); }));
+
+        // 좌표 계산
+        for (auto& e : controlList)
+        {
+            auto str = e->getStr();
+
+            // 텍스트를 바탕으로 가로 폭을 계산한다.
+            if (str.size() > 0)
+            {
+                // 포메팅 있으면 여유있게 더 잡기
+                str.append("123");
+
+                // 크기 구하고 폭 설정
+                const auto sz = model::Text::instance().measure(
+                    e->getType() == ControlTypes::Title ? UI_TITLE_TEXT_FONT : UI_ELEMENT_TEXT_FONT,
+                    str.c_str()
+                );
+                e->rectWindow.w = static_cast<float>(sz.w);
+
+                // 타이틀바 높이 설정이 안되어 있으면 높이 설정
+                if (e->rectWindow.h == -1)
+                {
+                    e->rectWindow.h = static_cast<float>(std::max(sz.h, UI_CHECKBOX_SIZE));
+                }
+            }
+
+            // 닫기 버튼은 계산하지 않음.
+            if (e->getType() != ControlTypes::Close)
+            {
+                e->rectWindow.y = uiRect.h;
+                uiRect.h += e->rectWindow.h + e->bottomMargin;
+            }
+        }
+
+        auto& title = controlList.at(0);
+        auto& close = controlList.at(1);
+
+        // 최대폭 계산하기
+        uiRect.w = title->rectWindow.x + title->rectWindow.w + UI_TITLE_HEIGHT + UI_CHECKBOX_MARGIN_X;
+        for (auto ctrl = controlList.begin() + 2; ctrl != controlList.end(); ctrl++)
+        {
+            uiRect.w = std::max(uiRect.w, (*ctrl)->getRight());
+        }
+
+        // 스크린 margin 만큼 이동하고 렌더링 좌표로 이동
+        uiRect.w += UI_MARGIN.l + UI_MARGIN.r;
+        uiRect.h += UI_MARGIN.t + UI_MARGIN.b;
+        
+        // 타이틀바는 마진 안먹임
+        for (auto it = controlList.begin() + 2; it != controlList.end(); it++)
+        {
+            auto ctrl = *it;
+
+            // 클릭하기 편하게 폭을 전체길이로 변환. 전체 길이에서 여백을 제외하고, 왼쪽 x 축 좌표만큼 빼줌
+            ctrl->rectWindow.w = uiRect.w - ctrl->rectWindow.x - UI_MARGIN.l - UI_MARGIN.r;
+
+            // 여맥만큼 이동시키기
+            ctrl->rectWindow.x += UI_MARGIN.l;
+            ctrl->rectWindow.y += UI_MARGIN.t;
+        }
+
+        // 타이틀쪽 좌표 재 계산
+        title->rectWindow.w = uiRect.w - UI_TITLE_HEIGHT;
+        close->rectWindow = {
+            uiRect.w - UI_TITLE_HEIGHT,
+            title->rectWindow.y,
+            UI_TITLE_HEIGHT,
+            UI_TITLE_HEIGHT
+        };
+
+        // 렌더링 좌표계 계산
+        for (auto& el : controlList)
+        {
+            el->rectRender = {
+                el->rectWindow.x,
+                uiRect.h - el->rectWindow.y - el->rectWindow.h,
+                el->rectWindow.w,
+                el->rectWindow.h
+            };
+        }
+    }
+
+    void moveDelta(float dx, float dy)
+    {
+        uiRect.x += dx;
+        uiRect.y += dy;
+    }
+    
+    void render(v::Size2f winRect)
+    {
+        if (!visible) return;
+
+        UI_LOCK;
+
+        // 화면 밖으로 나가는 현상 방지
+        uiRect.x = std::clamp(uiRect.x, -uiRect.w / 2, winRect.w - uiRect.w / 2);
+        uiRect.y = std::clamp(uiRect.y, -uiRect.h / 2, winRect.h - uiRect.h / 2);
+
+        enterMatrix;
+        enterAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_SCISSOR_TEST);
+
+        // 윈도우 좌표 -> OpenGL 좌표
+        const v::Rect2f uiRectLocal(
+            uiRect.x,
+            winRect.h - uiRect.y - uiRect.h,
+            uiRect.w,
+            uiRect.h
+        );
+
+        // 영역 지정
+        glEnable(GL_SCISSOR_BIT);
+        glScissor(
+            static_cast<int>(uiRectLocal.x) - 1,
+            static_cast<int>(uiRectLocal.y) - 1,
+            static_cast<int>(uiRectLocal.w) + 2,
+            static_cast<int>(uiRectLocal.h) + 2
+        );
+
+        // 배경 그리기
+        {
+            glColor4fv(UI_BACKGROUND);
+            glext::drawRect(GL_QUADS, uiRectLocal);
+        }
+
+        // 타이틀바
+        controlList.at(0)->draw(winRect, uiRectLocal);
+
+        for (auto ctrl = controlList.begin() + 2; ctrl != controlList.end(); ctrl++)
+        {
+            controlList.at(0)->draw(winRect, uiRectLocal);
+        }
+
+        // 닫기 버튼
+        controlList.at(1)->draw(winRect, uiRectLocal);
+
+        // 타이틀바 아래에 줄 그리기
+        {
+            enterBegin(GL_LINES);
+
+            const auto bottom = uiRectLocal.y + uiRectLocal.h - UI_TITLE_HEIGHT;
+            glVertex2f(uiRectLocal.x,                 bottom);
+            glVertex2f(uiRectLocal.x + uiRectLocal.w, bottom);
+
+            const auto left = uiRectLocal.x + uiRectLocal.w - UI_TITLE_HEIGHT;
+
+            glVertex2f(left, uiRectLocal.y + uiRectLocal.h - UI_TITLE_HEIGHT);
+            glVertex2f(left, uiRectLocal.y + uiRectLocal.h                  );
+        }
+
+        // 테두리 그리기
+        {
+            glColor4fv(UI_BORDER_COLOR);
+            glLineWidth(UI_BORDER_THICKNESS);
+
+            const v::Rect2f rectBorder(
+                uiRectLocal.x - 1,
+                uiRectLocal.y - 1,
+                uiRectLocal.w + 2,
+                uiRectLocal.h + 2
+            );
+            glext::drawRect(GL_LINE_LOOP, rectBorder);
+        }
+    }
+
+    void toggleVisible()
+    {
+        UI_LOCK;
+
+        // 숨겨질 때 마우스 작업 해제처리하기
+        if (!(visible = !visible) && mouseFocused != -1)
+        {
+            auto& el = controlList.at(mouseFocused);
+            el->focused = false;
+            el->clicked = false;
+
+            mouseFocused = -1;
+        } 
+    }
+
+    void close()
+    {
+        UI_LOCK;
+
+        // 숨겨질 때 마우스 작업 해제처리하기
+        visible = false;
+        if (mouseFocused != -1)
+        {
+            auto& el = controlList.at(mouseFocused);
+            el->focused = false;
+            el->clicked = false;
+
+            mouseFocused = -1;
+        }
+    }
+
+    // 현재 좌표가 어떤 컨트롤에 있는지 확인합니다.
+    int getHitIndex(v::Point2f pos)
+    {
+        for (size_t i = 0; i < controlList.size(); i++)
+        {
+            if (controlList.at(i)->hit(pos))
+            {
+                return static_cast<int>(i);
+            }
+        }
+
+        return -1;
+    }
+
+    bool onMouseDown(GLFWwindow* window, int button, v::Point2f pos)
+    {
+        if (!visible) return false;
+
+        UI_LOCK;
+
+        // 설정 영역 안인가?
+        if (!hit(uiRect, pos))
+        {
+            return false;
+        }
+
+        if (button != GLFW_MOUSE_BUTTON_LEFT) return true; // 왼쪽버튼 빼고 관심 없음
+
+        // 상대좌표로 변환
+        pos.x -= uiRect.x;
+        pos.y -= uiRect.y;
+
+        // 마우스 아래 컨트롤 찾고
+        const auto hit = getHitIndex(pos);
+        if (hit >= 0)
+        {
+            mouseLastFocused = hit;
+
+            mouseFocused = hit;
+            mouseLocation = pos;
+
+            // 사용중 표시하기
+            auto el = controlList.at(mouseFocused);
+            el->clicked = true;
+            el->mouseDown(pos);
+        }
+
+        return true;
+    }
+    bool onMouseMove(GLFWwindow* window, v::Point2f pos)
+    {
+        if (!visible) return false;
+
+        UI_LOCK;
+
+        if (mouseFocused == -1) // 클릭 없는 마우스 이동
+        {
+            // 설정 영역 밖이면 마지막 hit focused 해제하고 갱신.
+            if (!hit(uiRect, pos))
+            {
+                if (mouseLastFocused != -1) controlList.at(mouseLastFocused)->focused = false;
+                mouseLastFocused = -1;
+
+                return false;
+            }
+
+            // 상대좌표로 변환
+            pos.x -= uiRect.x;
+            pos.y -= uiRect.y;
+
+            // 포커싱된 항목 찾고, 포커싱이 달라졌으면 포커싱 이전하기
+            const auto hit = getHitIndex(pos);
+            if (mouseLastFocused != hit)
+            {
+                if (mouseLastFocused != -1) controlList.at(mouseLastFocused)->focused = false;
+                if (hit !=-1) controlList.at(hit)->focused = true;
+
+                mouseLastFocused = hit;
+            }
+
+            return true;
+        }
+        else
+        {
+            // 상대좌표로 변환
+            pos.x -= uiRect.x;
+            pos.y -= uiRect.y;
+
+            // 타이틀바면 UI 이동
+            if (mouseFocused == 0)
+            {
+                uiRect.x += pos.x - mouseLocation.x;
+                uiRect.y += pos.y - mouseLocation.y;
+            }
+            else
+            {
+                auto& el = controlList.at(mouseFocused);
+
+                if (el->clicked && !el->hit(pos)) // 범위 나갔으면 clicked 표시 빼버리기
+                {
+                    el->clicked = false;
+                }
+                else if (!el->clicked && el->hit(pos)) // 다시 들어왔으면 clicked 표시하기
+                {
+                    el->clicked = true;
+                }
+            }
+
+            return true;
+        }
+    }
+
+    bool onMouseUp(GLFWwindow* window, int button, v::Point2f pos)
+    {
+        if (!visible) return false;
+        if (button != GLFW_MOUSE_BUTTON_LEFT) return false; // 왼쪽버튼 빼고 관심 없음
+        if (mouseFocused == -1) return false; // 포커싱 안된건 관심 없음
+
+        UI_LOCK;
+
+        // 상대좌표로 변환
+        pos.x -= uiRect.x;
+        pos.y -= uiRect.y;
+
+        auto& el = controlList.at(mouseFocused);
+
+        // 클릭 해제
+        el->clicked = false;
+
+        // 타이틀바는 별도의 작업 수행 안함
+        if (mouseFocused != 0)
+        {
+            // 뗀 위치가 해당 컨트롤 위에 있어야 이벤트 처리를 한다.
+            const auto hit = getHitIndex(pos);
+            if (mouseFocused == hit)
+            {
+                el->mouseUp(pos);
+            }
+        }
+
+        mouseFocused = -1;
+
+        return true;
+    }
+}

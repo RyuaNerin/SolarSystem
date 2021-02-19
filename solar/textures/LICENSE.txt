@@ -1,0 +1,30 @@
+Pluto : https://www.nasa.gov/image-feature/pluto-global-color-map
+
+
+
+
+
+
+
+
+
+https://www.solarsystemscope.com/textures/
+
+Solar Textures
+These textures represent real planetary maps in equirectangular projection. You can use them in 3D rendering, or just open them in any image viewer and explore the surface of planets :)
+
+Textures in this pack are based on NASA elevation and imagery data. Colors and shades of the textures are tuned accordng to true-color photos made by Messenger, Viking and Cassini spacecrafts, and, of course, the Hubble Space Telescope.
+NOTES:
+
+Some parts of the planets remain to be mapped. These “gaps” are filled with fictional terrain that corresponds with the rest of the landscape.
+
+The colors are slightly more saturated in order to highlite a unique nature for each object.
+
+Earth textures are the most precise part of the pack: They are a result of merging and adjusting large amount of geo-data, space photos and images from NASA’s Blue Marble (which might well be the 2nd best collection of Earth’s textures available, so check it out)
+
+True Earth colors (as seen from space) may vary depending on the camera used, duration of exposure, lightning conditions and atmospheric conditions. Textures in our pack are sharp, bright and colorful.
+
+Seasonal variations affect Earth’s flora and snow coverage. Earth in our textures has a lot of vegetation and less snow.
+
+Distributed under Attribution 4.0 International license:
+You may use, adapt, and share these textures for any purpose, even commercially.

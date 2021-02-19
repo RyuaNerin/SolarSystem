@@ -1,0 +1,233 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="소스 파일">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="헤더 파일">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="GL텍스쳐 파일">
+      <UniqueIdentifier>{89c83022-1db0-48dd-a2f9-34541f07c2cd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GL셰이더 파일">
+      <UniqueIdentifier>{e0968f2c-3cfc-474d-b1cf-f06187d570d0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GL리소스 파일">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="shaders\planet.frag">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\planet.vert">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="resources\D2Coding-Ver1.3.2-20180524.ttf">
+      <Filter>GL리소스 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\earth.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\jupiter.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\LICENSE.txt">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\mars.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\mercury.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\moon.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\neptune.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\saturn.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\saturn_ring_alpha.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\stars.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\stars_milky_way.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\sun.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\uranus.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\venus.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\text_2d.frag">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\text_2d.vert">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\cube.vert">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\cube.frag">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\cube.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\milkyway.frag">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\milkyway.vert">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\earth_nightmap.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\earth_clouds.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\geometry_2d.vert">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\geometry_2d.frag">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\geometry_2d_tex.frag">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\geometry_2d_tex.vert">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\earth_specular_map.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\saturn_ring.frag">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\saturn_ring.vert">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\orbit.frag">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\orbit.vert">
+      <Filter>GL셰이더 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="textures\pluto.png">
+      <Filter>GL텍스쳐 파일</Filter>
+    </CopyFileToFolders>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="camera.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="input.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="planet.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="glext.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="render.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="config.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="model_text.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="ui.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\glad\src\glad.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="orbital.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\glad\src\glad_wgl.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="camera.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="constants.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="defer.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="input.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="planet.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="utils.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="glext.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="render.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="config.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ui.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="v.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="model_planet.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="model_milkyway.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="model_utils.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="model_text.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="model_orbit.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="model_renderbuffer.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="model_saturn_ring.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="orbital.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

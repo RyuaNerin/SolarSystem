@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30503.244
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "solar", "solar\solar.vcxproj", "{B7614449-B315-487D-96F7-5FC2B2D4D28D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{793AEA88-D370-4D8E-A84F-E497432600F9} = {793AEA88-D370-4D8E-A84F-E497432600F9}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{23552380-C44B-486C-8999-F97A83AC15AE}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui", "..\..\프로그래밍\solar\imgui\imgui.vcxproj", "{793AEA88-D370-4D8E-A84F-E497432600F9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B7614449-B315-487D-96F7-5FC2B2D4D28D}.Debug|x64.ActiveCfg = Debug|x64
+		{B7614449-B315-487D-96F7-5FC2B2D4D28D}.Debug|x64.Build.0 = Debug|x64
+		{B7614449-B315-487D-96F7-5FC2B2D4D28D}.Debug|x86.ActiveCfg = Debug|Win32
+		{B7614449-B315-487D-96F7-5FC2B2D4D28D}.Debug|x86.Build.0 = Debug|Win32
+		{B7614449-B315-487D-96F7-5FC2B2D4D28D}.Release|x64.ActiveCfg = Release|x64
+		{B7614449-B315-487D-96F7-5FC2B2D4D28D}.Release|x64.Build.0 = Release|x64
+		{B7614449-B315-487D-96F7-5FC2B2D4D28D}.Release|x86.ActiveCfg = Release|Win32
+		{B7614449-B315-487D-96F7-5FC2B2D4D28D}.Release|x86.Build.0 = Release|Win32
+		{793AEA88-D370-4D8E-A84F-E497432600F9}.Debug|x64.ActiveCfg = Debug|x64
+		{793AEA88-D370-4D8E-A84F-E497432600F9}.Debug|x64.Build.0 = Debug|x64
+		{793AEA88-D370-4D8E-A84F-E497432600F9}.Debug|x86.ActiveCfg = Debug|Win32
+		{793AEA88-D370-4D8E-A84F-E497432600F9}.Debug|x86.Build.0 = Debug|Win32
+		{793AEA88-D370-4D8E-A84F-E497432600F9}.Release|x64.ActiveCfg = Release|x64
+		{793AEA88-D370-4D8E-A84F-E497432600F9}.Release|x64.Build.0 = Release|x64
+		{793AEA88-D370-4D8E-A84F-E497432600F9}.Release|x86.ActiveCfg = Release|Win32
+		{793AEA88-D370-4D8E-A84F-E497432600F9}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BDF42D89-9F8A-4027-AAE6-76AE5F7C34D2}
+	EndGlobalSection
+EndGlobal
